@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-orthodontic-diagnostic-system"
+version = "1.0.0"
+description = "AI专家级正畸诊断系统 - 基于深度学习的自动化头影测量分析系统"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = [
+    "deep-learning",
+    "medical-imaging",
+    "orthodontics",
+    "cephalometric",
+    "landmark-detection",
+    "cvm-staging"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "timm>=0.9.0",
+    "safetensors>=0.3.0",
+    "albumentations>=1.3.0",
+    "opencv-python>=4.7.0",
+    "Pillow>=9.5.0",
+    "pydicom>=2.3.0",
+    "SimpleITK>=2.2.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "scikit-learn>=1.2.0",
+    "tqdm>=4.65.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/ai-orthodontic-diagnostic-system"
+Repository = "https://github.com/yourusername/ai-orthodontic-diagnostic-system"
+Documentation = "https://github.com/yourusername/ai-orthodontic-diagnostic-system#readme"
+
+[tool.setuptools]
+packages = ["utils"]
+
+[tool.setuptools.package-dir]
+"" = "."

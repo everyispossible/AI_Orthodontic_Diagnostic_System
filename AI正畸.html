@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Orthodontic Diagnostic System</title>
+
+  <!-- 引入界面所需的 Tabler 图标库 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+  <style>
+    /* 定义全局颜色与 UI 变量 */
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #f4f4f5;
+      --color-background-tertiary: #e4e4e7;
+      --color-border-secondary: #d4d4d8;
+      --color-border-tertiary: #e4e4e7;
+      --color-text-primary: #18181b;
+      --color-text-secondary: #71717a;
+      --color-text-tertiary: #a1a1aa;
+      --color-text-info: #3b82f6;
+      --color-background-info: #eff6ff;
+      --color-border-info: #bfdbfe;
+      --color-background-success: #dcfce7;
+      --color-text-success: #16a34a;
+      --color-background-warning: #fef3c7;
+      --color-text-warning: #d97706;
+      --color-background-danger: #fee2e2;
+      --color-text-danger: #dc2626;
+      --border-radius-lg: 12px;
+      --border-radius-md: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background: #f9fafb; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .app { display: flex; width: 100%; max-width: 960px; height: 680px; border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .sidebar { width: 260px; min-width: 260px; border-right: 1px solid var(--color-border-tertiary); display: flex; flex-direction: column; overflow: hidden; }
+    .sidebar-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--color-border-tertiary); }
+    .sidebar-title { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+    .sidebar-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+    .upload-zone { margin: 12px; border: 1px dashed var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 16px 12px; text-align: center; cursor: pointer; transition: background 0.15s; background: var(--color-background-secondary); }
+    .upload-zone:hover { background: var(--color-background-tertiary); }
+    .upload-zone input { display: none; }
+    .upload-icon { font-size: 20px; color: var(--color-text-secondary); }
+    .upload-text { font-size: 11px; color: var(--color-text-secondary); margin-top: 6px; }
+    .upload-btn { font-size: 11px; color: var(--color-text-info); font-weight: 500; }
+    .demo-btn { display: block; margin: 0 12px 12px; width: calc(100% - 24px); font-size: 12px; padding: 8px; background: var(--color-background-info); color: var(--color-text-info); border: 1px solid var(--color-border-info); border-radius: var(--border-radius-md); cursor: pointer; font-weight: 500; }
+    .demo-btn:hover { opacity: 0.85; }
+    .landmark-list { flex: 1; overflow-y: auto; }
+    .lm-group-header { padding: 8px 14px 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); border-top: 1px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 6px; }
+    .tier-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .lm-item { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; transition: background 0.1s; border-bottom: 1px solid transparent; }
+    .lm-item:hover { background: var(--color-background-secondary); }
+    .lm-item.selected { background: var(--color-background-info); border-bottom-color: var(--color-border-info); }
+    .lm-idx { font-size: 10px; color: var(--color-text-tertiary); min-width: 24px; font-variant-numeric: tabular-nums; }
+    .lm-name { font-size: 12px; color: var(--color-text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+    .lm-sdr { font-size: 10px; font-variant-numeric: tabular-nums; min-width: 36px; text-align: right; font-weight: 500; }
+
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .summary-bar { padding: 8px 14px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+    .s-pill { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
+
+    .canvas-area { flex: 1; position: relative; overflow: hidden; background: #0a0a0f; display: flex; align-items: center; justify-content: center; }
+    .canvas-wrap { position: relative; }
+    #xray-canvas { display: block; border-radius: 4px; }
+    #overlay-svg { position: absolute; top: 0; left: 0; pointer-events: none; }
+    .landmark-pt { cursor: pointer; pointer-events: all; }
+    .placeholder-msg { color: #888; font-size: 13px; text-align: center; }
+    .placeholder-msg i { font-size: 40px; display: block; margin-bottom: 12px; color: #555; }
+
+    .diag-panel { height: 250px; border-top: 1px solid var(--color-border-tertiary); overflow-y: auto; background: var(--color-background-primary); }
+    .diag-tabs { display: flex; border-bottom: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); position: sticky; top: 0; z-index: 5; }
+    .diag-tab { padding: 10px 16px; font-size: 12px; cursor: pointer; color: var(--color-text-secondary); border-bottom: 2px solid transparent; font-weight: 500; }
+    .diag-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-info); background: var(--color-background-primary); }
+    .diag-content { padding: 14px 16px; }
+
+    /* 更新了 meas-row 适配 API 返回的综合报告布局 */
+    .meas-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border-tertiary); }
+    .meas-row:last-child { border-bottom: none; }
+    .meas-name { font-size: 12px; color: var(--color-text-primary); font-weight: 500; }
+    .meas-val { font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 52px; text-align: right; color: var(--color-text-primary); }
+    .meas-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; min-width: 60px; text-align: center; }
+
+    .badge-ok { background: var(--color-background-success); color: var(--color-text-success); }
+    .badge-warn { background: var(--color-background-warning); color: var(--color-text-warning); }
+    .badge-err { background: var(--color-background-danger); color: var(--color-text-danger); }
+
+    .cvm-block { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .cvm-card { border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; background: var(--color-background-primary); transition: all 0.2s; }
+    .cvm-card.active { border-color: var(--color-border-info); background: var(--color-background-info); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15); }
+    .cvm-stage { font-size: 11px; font-weight: 700; color: var(--color-text-info); }
+    .cvm-title { font-size: 12px; font-weight: 600; color: var(--color-text-primary); margin: 3px 0; }
+    .cvm-desc { font-size: 10px; color: var(--color-text-secondary); }
+    .cvm-action { font-size: 10px; color: var(--color-text-warning); margin-top: 5px; font-weight: 600; }
+
+    .tooltip { position: absolute; background: var(--color-background-primary); border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; font-size: 11px; pointer-events: none; z-index: 10; min-width: 170px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .tooltip-name { font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; font-size: 12px; }
+    .tooltip-row { display: flex; justify-content: space-between; gap: 12px; color: var(--color-text-secondary); margin-bottom: 3px; }
+    .tooltip-sdr { font-weight: 600; }
+    .empty-diag { color: var(--color-text-tertiary); font-size: 13px; padding: 30px; text-align: center; }
+    .ask-btn { font-size: 11px; font-weight: 500; padding: 6px 12px; background: transparent; border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; color: var(--color-text-primary); margin-top: 10px; transition: background 0.15s; }
+    .ask-btn:hover { background: var(--color-background-secondary); }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 左侧边栏 -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Landmark points</div>
+      <div class="sidebar-sub">29 cephalometric landmarks</div>
+    </div>
+
+    <div class="upload-zone" onclick="document.getElementById('file-in').click()">
+      <input type="file" id="file-in" accept=".png,.jpg,.jpeg,.dcm" onchange="loadImage(event)">
+      <i class="ti ti-upload upload-icon" aria-hidden="true"></i>
+      <div class="upload-text">Upload X-ray image</div>
+      <div class="upload-btn">PNG / JPG / DICOM</div>
+    </div>
+
+    <button class="demo-btn" onclick="loadDemo()">
+      <i class="ti ti-player-play" style="font-size:14px; vertical-align:middle; margin-right:4px;"></i>
+      Load demo case
+    </button>
+
+    <div class="landmark-list" id="lm-list"></div>
+  </div>
+
+  <!-- 右侧主区域 -->
+  <div class="main">
+    <div class="summary-bar" id="summary-bar" style="display:none">
+      <span class="s-pill" style="background:rgba(34,197,94,0.15);color:#16a34a">Tier 1: <span id="t1c">0</span></span>
+      <span class="s-pill" style="background:rgba(245,158,11,0.15);color:#d97706">Tier 2: <span id="t2c">0</span></span>
+      <span class="s-pill" style="background:rgba(239,68,68,0.15);color:#dc2626">Tier 3: <span id="t3c">0</span></span>
+      <span style="font-size:12px;color:var(--color-text-secondary);margin-left:auto; font-weight:500;">
+        CVM: <strong id="cvm-badge" style="color:var(--color-text-info); font-size:13px;">—</strong>
+      </span>
+    </div>
+
+    <div class="canvas-area" id="canvas-area">
+      <div class="placeholder-msg" id="placeholder">
+        <i class="ti ti-scan" aria-hidden="true"></i>
+        Upload an X-ray or load the demo case
+      </div>
+      <div class="canvas-wrap" id="canvas-wrap" style="display:none">
+        <canvas id="xray-canvas"></canvas>
+        <svg id="overlay-svg"></svg>
+      </div>
+      <div class="tooltip" id="tooltip" style="display:none"></div>
+    </div>
+
+    <div class="diag-panel">
+      <!-- 整合后的 Tabs：因为后端返回完整报告，所以将骨性/牙性合并为综合报告 -->
+      <div class="diag-tabs">
+        <div class="diag-tab active" onclick="switchTab(0,this)">AI Measurements</div>
+        <div class="diag-tab" onclick="switchTab(1,this)">CVM Stage</div>
+        <div class="diag-tab" onclick="switchTab(2,this)">AI Summary</div>
+      </div>
+      <div class="diag-content" id="diag-content">
+        <div class="empty-diag">Load a case to see diagnostic measurements</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// 1. 配置区与全局变量
+// ==========================================
+const API_URL = 'https://ff0n1w36vb9ry17t-8080.hn01-webservice.gpuhome.cc:8443/proxy/8000/api/analyze';
+
+const LANDMARKS = [
+  {id:0,name:"A-point",abbr:"A",sdr:91.2},{id:1,name:"Ant. Nasal Spine",abbr:"ANS",sdr:88.4},
+  {id:2,name:"B-point",abbr:"B",sdr:89.7},{id:3,name:"Menton",abbr:"Me",sdr:93.1},
+  {id:4,name:"Nasion",abbr:"N",sdr:95.6},{id:5,name:"Orbitale",abbr:"Or",sdr:76.3},
+  {id:6,name:"Pogonion",abbr:"Pog",sdr:90.5},{id:7,name:"Post. Nasal Spine",abbr:"PNS",sdr:82.1},
+  {id:8,name:"Pronasale",abbr:"Pn",sdr:78.9},{id:9,name:"Ramus",abbr:"R",sdr:71.4},
+  {id:10,name:"Sella",abbr:"S",sdr:97.1},{id:11,name:"Articulare",abbr:"Ar",sdr:73.8},
+  {id:12,name:"Condylion",abbr:"Co",sdr:69.2},{id:13,name:"Gnathion",abbr:"Gn",sdr:91.8},
+  {id:14,name:"Gonion",abbr:"Go",sdr:48.7},{id:15,name:"Porion",abbr:"Po",sdr:68.7},
+  {id:16,name:"Lower 2nd PM Cusp",abbr:"LPM",sdr:74.5},{id:17,name:"Lower Incisor Tip",abbr:"LIT",sdr:86.3},
+  {id:18,name:"Lower Molar Cusp",abbr:"LMT",sdr:79.2},{id:19,name:"Upper 2nd PM Cusp",abbr:"UPM",sdr:72.1},
+  {id:20,name:"Upper Incisor Apex",abbr:"UIA",sdr:81.4},{id:21,name:"Upper Incisor Tip",abbr:"UIT",sdr:87.9},
+  {id:22,name:"Upper Molar Cusp",abbr:"UMT",sdr:77.6},{id:23,name:"Lower Incisor Apex",abbr:"LIA",sdr:83.5},
+  {id:24,name:"Labrale Inferius",abbr:"Li",sdr:92.4},{id:25,name:"Labrale Superius",abbr:"Ls",sdr:94.1},
+  {id:26,name:"ST Nasion",abbr:"N'",sdr:96.8},{id:27,name:"ST Pogonion",abbr:"Pog'",sdr:93.7},
+  {id:28,name:"Subnasale",abbr:"Sn",sdr:97.3}
+];
+
+let pts = [];
+let selectedId = null;
+let activeTab = 0;
+let cvmStage = 3;
+
+// 新增：保存后端直接返回的真实数据和动画状态
+let apiReport = null;
+let cvmStageRaw = "";
+let loadingInterval = null;
+
+let imgW = 0, imgH = 0;
+
+function tier(sdr){ return sdr>80?1:sdr>=60?2:3; }
+function tierColor(sdr){ return sdr>80?'#22c55e':sdr>=60?'#f59e0b':'#ef4444'; }
+function sendPrompt(msg) { alert("此功能未来可连接大型语言模型。\n发送的 Prompt: \n" + msg); }
+
+// ==========================================
+// 2. 界面初始化
+// ==========================================
+function buildLandmarkList(){
+  const el = document.getElementById('lm-list');
+  const t1 = LANDMARKS.filter(l=>tier(l.sdr)===1);
+  const t2 = LANDMARKS.filter(l=>tier(l.sdr)===2);
+  const t3 = LANDMARKS.filter(l=>tier(l.sdr)===3);
+  let h = '';
+
+  const makeGroup = (items, label, col, dotCol) => {
+    h += `<div class="lm-group-header"><span class="tier-dot" style="background:${dotCol}"></span>${label}</div>`;
+    items.forEach(l=>{
+      const sdrCol = tierColor(l.sdr);
+      h += `<div class="lm-item" id="li-${l.id}" onclick="selectLandmark(${l.id})">
+        <span class="lm-idx">P${String(l.id+1).padStart(2,'0')}</span>
+        <span class="lm-name">${l.name}</span>
+        <span class="lm-sdr" style="color:${sdrCol}">${l.sdr}%</span>
+      </div>`;
+    });
+  };
+
+  makeGroup(t1,'Tier 1 — auto output','green','#22c55e');
+  makeGroup(t2,'Tier 2 — verify','amber','#f59e0b');
+  makeGroup(t3,'Tier 3 — manual','red','#ef4444');
+
+  el.innerHTML = h;
+  document.getElementById('t1c').textContent = t1.length;
+  document.getElementById('t2c').textContent = t2.length;
+  document.getElementById('t3c').textContent = t3.length;
+}
+
+// ==========================================
+// 3. 核心 API 图像上传与推理
+// ==========================================
+async function loadImage(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  // 清空之前的历史数据
+  apiReport = null;
+  cvmStageRaw = "";
+
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+
+  img.onload = async () => {
+    const canvas = document.getElementById('xray-canvas');
+    const maxW = 420, maxH = 520;
+    let w = img.width, h = img.height;
+
+    // 坐标缩放因子
+    const r = Math.min(maxW/w, maxH/h);
+    w = Math.round(w*r);
+    h = Math.round(h*r);
+
+    canvas.width = w; canvas.height = h;
+    imgW = w; imgH = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    showCanvas();
+
+    // 注入动态排队提示文字功能
+    const svg = document.getElementById('overlay-svg');
+    const texts = ["云端 AI 模型正在进行推理...", "若当前排队较多，请稍作等待...", "正在提取影像特征点...", "正在出具智能分析报告..."];
+    let textIdx = 0;
+
+    svg.innerHTML = `<text id="loading-txt" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="14" font-weight="bold" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">${texts[0]}</text>`;
+
+    loadingInterval = setInterval(() => {
+        textIdx = (textIdx + 1) % texts.length;
+        const txtEl = document.getElementById('loading-txt');
+        if(txtEl) txtEl.textContent = texts[textIdx];
+    }, 2500);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("pixel_spacing_x", "0.084");
+    formData.append("pixel_spacing_y", "0.084");
+    formData.append("gender", "F"); // 保持后台要求，但界面去除了选项
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: formData
+      });
+
+      const resData = await response.json();
+
+      if(resData.status === 'success') {
+        const apiData = resData.data;
+
+        // 记录 API 报告，用于更新 UI 面板
+        apiReport = apiData.report;
+        cvmStageRaw = apiData.cvm_stage;
+
+        pts = LANDMARKS.map(lm => {
+           const coords = apiData.landmarks[lm.abbr];
+           if (coords) return [Math.round(coords[0] * r), Math.round(coords[1] * r)];
+           return [0, 0];
+        });
+
+        const stageMatch = cvmStageRaw.match(/\d+/);
+        if(stageMatch) cvmStage = parseInt(stageMatch[0]) - 1;
+
+        renderOverlay();
+        updateSummary();
+        showDiagnostics();
+
+      } else {
+        alert("⚠️ AI 诊断失败：" + resData.message);
+        svg.innerHTML = '';
+      }
+    } catch (error) {
+      console.error(error);
+      alert("⚠️ 网络请求失败！请检查云平台后端是否在线。\n如果存在跨域问题请在控制台查看。");
+      svg.innerHTML = '';
+    } finally {
+      clearInterval(loadingInterval);
+    }
+  };
+  img.src = url;
+}
+
+// Demo 兜底
+function loadDemo(){
+  apiReport = null;
+  const canvas = document.getElementById('xray-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 420, H = 520;
+  canvas.width = W; canvas.height = H; imgW = W; imgH = H;
+
+  ctx.fillStyle = '#060810'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#1a1a2e'; ctx.beginPath(); ctx.ellipse(210,180,140,160,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#111'; ctx.beginPath(); ctx.ellipse(210,370,120,110,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#222'; ctx.beginPath(); ctx.ellipse(210,160,100,120,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(180,180,200,0.08)'; ctx.lineWidth = 1;
+  for(let i=0;i<8;i++){ ctx.beginPath(); ctx.arc(210,160,40+i*18,0,Math.PI*2); ctx.stroke(); }
+
+  pts = [
+    [210,270],[183,215],[215,295],[215,430],[185,130],[235,175],[225,425],[176,225],
+    [170,148],[265,240],[195,120],[250,195],[255,185],[218,440],[272,310],[258,195],
+    [230,335],[214,330],[242,340],[196,325],[208,320],[214,320],[228,340],[210,325],
+    [215,265],[213,250],[180,132],[218,435],[175,175]
+  ];
+  cvmStageRaw = "CS3";
+  cvmStage = 2;
+
+  showCanvas();
+  renderOverlay();
+  updateSummary();
+  showDiagnostics();
+}
+
+// ==========================================
+// 4. SVG 图层交互与绘制
+// ==========================================
+function showCanvas(){
+  document.getElementById('placeholder').style.display='none';
+  document.getElementById('canvas-wrap').style.display='block';
+  document.getElementById('summary-bar').style.display='flex';
+  const svg = document.getElementById('overlay-svg');
+  const canvas = document.getElementById('xray-canvas');
+  svg.setAttribute('width', canvas.width);
+  svg.setAttribute('height', canvas.height);
+}
+
+function renderOverlay(){
+  const svg = document.getElementById('overlay-svg');
+  svg.innerHTML = '';
+  if(!pts.length) return;
+
+  pts.forEach((p,i)=>{
+    const lm = LANDMARKS[i];
+    if(!lm || p[0]===0) return;
+    const [x,y] = p;
+    const col = tierColor(lm.sdr);
+    const isSel = selectedId === i;
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','landmark-pt');
+    g.setAttribute('transform',`translate(${x},${y})`);
+
+    if(isSel){
+      const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      ring.setAttribute('r','10'); ring.setAttribute('fill','none');
+      ring.setAttribute('stroke',col); ring.setAttribute('stroke-width','1.5');
+      ring.setAttribute('opacity','0.7'); g.appendChild(ring);
+    }
+
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('r', isSel?'5':'3.5');
+    c.setAttribute('fill', col);
+    c.setAttribute('stroke','rgba(255,255,255,0.7)');
+    c.setAttribute('stroke-width','1');
+    g.appendChild(c);
+
+    if(isSel){
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x','8'); t.setAttribute('y','4');
+      t.setAttribute('fill','white'); t.setAttribute('font-size','10');
+      t.setAttribute('font-weight','bold');
+      t.setAttribute('filter','drop-shadow(0 1px 2px rgba(0,0,0,0.8))');
+      t.textContent = lm.abbr; g.appendChild(t);
+    }
+
+    g.addEventListener('mouseenter', e => showTooltip(e,lm,p));
+    g.addEventListener('mouseleave', hideTooltip);
+    g.addEventListener('click', () => selectLandmark(i));
+    svg.appendChild(g);
+  });
+}
+
+function showTooltip(e, lm, p){
+  const tip = document.getElementById('tooltip');
+  const area = document.getElementById('canvas-area').getBoundingClientRect();
+  const wrap = document.getElementById('canvas-wrap').getBoundingClientRect();
+
+  const t = tier(lm.sdr);
+  const tLabel = t===1?'Auto output':t===2?'Verify required':'Manual only';
+
+  tip.innerHTML = `<div class="tooltip-name">P${String(lm.id+1).padStart(2,'0')} — ${lm.name}</div>
+    <div class="tooltip-row"><span>SDR (2mm)</span><span class="tooltip-sdr" style="color:${tierColor(lm.sdr)}">${lm.sdr}%</span></div>
+    <div class="tooltip-row"><span>Tier ${t}</span><span>${tLabel}</span></div>
+    <div class="tooltip-row"><span>Coords</span><span>${p[0]}, ${p[1]} px</span></div>`;
+
+  const tx = p[0] + (wrap.left - area.left) + 12;
+  const ty = p[1] + (wrap.top - area.top) - 20;
+
+  tip.style.left = Math.min(tx, area.width - 180) + 'px';
+  tip.style.top = Math.max(ty, 10) + 'px';
+  tip.style.display = 'block';
+}
+
+function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
+
+function selectLandmark(id){
+  selectedId = selectedId===id ? null : id;
+  document.querySelectorAll('.lm-item').forEach(el=>el.classList.remove('selected'));
+  if(selectedId!==null){
+    const el=document.getElementById(`li-${id}`);
+    if(el){ el.classList.add('selected'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+  }
+  renderOverlay();
+}
+
+function updateSummary(){
+  const labels = ['CS1', 'CS2', 'CS3', 'CS4', 'CS5', 'CS6'];
+  const safeStage = Math.max(0, Math.min(5, cvmStage));
+  document.getElementById('cvm-badge').textContent = labels[safeStage];
+}
+
+// ==========================================
+// 5. 测量计算与报告面板
+// ==========================================
+function switchTab(idx, el){
+  activeTab = idx;
+  document.querySelectorAll('.diag-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  showDiagnostics();
+}
+
+// 保留用于离线演示计算的兜底函数
+function calcAngle(a,b,c){
+  if(!pts[a]||!pts[b]||!pts[c]||pts[a][0]===0||pts[b][0]===0||pts[c][0]===0) return null;
+  const v1=[pts[a][0]-pts[b][0],pts[a][1]-pts[b][1]];
+  const v2=[pts[c][0]-pts[b][0],pts[c][1]-pts[b][1]];
+  const dot=v1[0]*v2[0]+v1[1]*v2[1];
+  const m=Math.sqrt(v1[0]**2+v1[1]**2)*Math.sqrt(v2[0]**2+v2[1]**2);
+  return m>0?Math.round(Math.acos(Math.max(-1,Math.min(1,dot/m)))*180/Math.PI):null;
+}
+
+function showDiagnostics(){
+  const el = document.getElementById('diag-content');
+  if(!pts.length){ el.innerHTML='<div class="empty-diag">Load a case to see diagnostic measurements</div>'; return; }
+
+  if(activeTab===0) renderMeasurements(el);
+  else if(activeTab===1) renderCVM(el);
+  else renderSummary(el);
+}
+
+// 渲染综合诊断报告 (代替了原有的硬编码 Skeletal 和 Dental)
+function renderMeasurements(el){
+    if (apiReport) {
+        let h = '<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:12px">Comprehensive AI Cephalometric Report</div>';
+        h += '<div style="display:flex;flex-direction:column;gap:6px;">';
+
+        for (const [key, data] of Object.entries(apiReport)) {
+            let valStr = data.value !== null ? data.value : '—';
+            if (data.value !== null && (key.includes("角") || ["SNA","SNB","ANB","FMA","IMPA"].includes(key))) valStr += '°';
+            else if (data.value !== null) valStr += ' mm';
+
+            // 根据状态映射高亮标记
+            let badgeCls = "badge-ok";
+            if (data.status.includes("校验") || data.status.includes("降权")) badgeCls = "badge-warn";
+            if (data.status.includes("冻结") || data.status.includes("系统")) badgeCls = "badge-err";
+
+            h += `<div class="meas-row">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="meas-name">${key}</span>
+                <span style="font-size:10px;color:var(--color-text-tertiary)">${data.clinical_advice || 'AI reference'}</span>
+                </div>
+                <span class="meas-val">${valStr}</span>
+                <span class="meas-badge ${badgeCls}">${data.status}</span>
+            </div>`;
+        }
+        h += `</div>
+        <button class="ask-btn" onclick="sendPrompt('Interpret the overall structural pattern based on these measurements. Are there compensatory mechanisms?')">
+            <i class="ti ti-robot" style="vertical-align:text-bottom; margin-right:2px;"></i> Ask AI to interpret report
+        </button>`;
+        el.innerHTML = h;
+    } else {
+        // 如果没有 API 数据 (Demo 模式)，则 fallback 显示基础推算数据
+        const SNAv = calcAngle(10,4,0);
+        const SNBv = calcAngle(10,4,2);
+        const ANBv = (SNAv&&SNBv)?+(SNAv-SNBv).toFixed(0):null;
+
+        el.innerHTML = `
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:8px">Measurements (Local Demo Fallback)</div>
+        <div class="meas-row">
+            <span class="meas-name">SNA angle</span>
+            <span class="meas-val">${SNAv}°</span>
+            <span class="meas-badge badge-ok">系统自动分析</span>
+        </div>
+        <div class="meas-row">
+            <span class="meas-name">SNB angle</span>
+            <span class="meas-val">${SNBv}°</span>
+            <span class="meas-badge badge-ok">系统自动分析</span>
+        </div>
+        <div class="meas-row">
+            <span class="meas-name">ANB angle</span>
+            <span class="meas-val">${ANBv}°</span>
+            <span class="meas-badge badge-ok">系统自动分析</span>
+        </div>
+        <div class="meas-row">
+            <span class="meas-name">Gonion (Go)</span>
+            <span class="meas-val" style="color:var(--color-text-tertiary)">—</span>
+            <span class="meas-badge badge-lock">Tier 3 lock</span>
+        </div>`;
+    }
+}
+
+// CVM 渲染，无缝集成了前一版的 Alert 警告逻辑
+function renderCVM(el){
+  const stages = [
+    {cs:'CS1',title:'Pre-pubertal',desc:'Growth not yet started',action:'Avoid heavy appliances',q:'~8%'},
+    {cs:'CS2',title:'Pre-pubertal late',desc:'Growth imminent',action:'Monitor closely',q:'~15%'},
+    {cs:'CS3',title:'Pubertal acceleration',desc:'Peak growth window',action:'Full bone modification',q:'~30%'},
+    {cs:'CS4',title:'Pubertal deceleration',desc:'Slowing growth',action:'Compensatory ortho',q:'~32%'},
+    {cs:'CS5',title:'Post-pubertal',desc:'Growth nearly complete',action:'Consider orthognathic',q:'~8%'},
+    {cs:'CS6',title:'Mature',desc:'Skeletal maturity',action:'Surgery or adult ortho',q:'~7%'},
+  ];
+  const safeStage = Math.max(0, Math.min(5, cvmStage));
+
+  let h = `<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Cervical vertebrae maturation (CVM) — current prediction: <strong style="color:var(--color-text-info);font-size:12px;">${stages[safeStage].cs}</strong></div>
+  <div class="cvm-block">`;
+
+  stages.forEach((s,i)=>{
+    const active = i===safeStage;
+    h += `<div class="cvm-card ${active?'active':''}">
+      <div class="cvm-stage">${s.cs} <span style="font-size:9px;color:inherit;opacity:0.8;">${s.q}</span></div>
+      <div class="cvm-title">${s.title}</div>
+      <div class="cvm-desc">${s.desc}</div>
+      ${active?`<div class="cvm-action"><i class="ti ti-info-circle" style="font-size:12px;vertical-align:text-bottom"></i> ${s.action}</div>`:''}
+    </div>`;
+  });
+  h += `</div>`;
+
+  // 植入原有的预警提示框机制
+  if (cvmStageRaw === "CS6") {
+      h += `<div style="margin-top:14px; padding:10px; background:rgba(34,197,94,0.1); border:1px solid #4ade80; border-radius:6px; font-size:11px; color:#16a34a; display:flex; align-items:center; gap:6px;">
+        <i class="ti ti-check" style="font-size:14px;"></i> 解剖形态成熟，无跨界风险，系统自动放行免除核对。
+      </div>`;
+  } else if (cvmStageRaw) {
+      h += `<div style="margin-top:14px; padding:10px; background:rgba(245,158,11,0.1); border:1px solid #fcd34d; border-radius:6px; font-size:11px; color:#d97706; display:flex; align-items:center; gap:6px;">
+        <i class="ti ti-alert-triangle" style="font-size:14px;"></i> 当前阶段已被强制加入“需医生验证”限制，仅 CS6 享有免核对特权。
+      </div>`;
+  }
+
+  h += `<button class="ask-btn" style="margin-top:12px" onclick="sendPrompt('The patient is at ${stages[safeStage].cs} (${stages[safeStage].title}). What is the optimal treatment timing strategy and what interventions are most effective at this stage?')">
+    <i class="ti ti-robot" style="vertical-align:text-bottom; margin-right:2px;"></i> Ask AI about ${stages[safeStage].cs} treatment timing
+  </button>`;
+
+  el.innerHTML = h;
+}
+
+function renderSummary(el){
+  const t1 = LANDMARKS.filter(l=>tier(l.sdr)===1).length;
+  const t2 = LANDMARKS.filter(l=>tier(l.sdr)===2).length;
+  const t3 = LANDMARKS.filter(l=>tier(l.sdr)===3).length;
+  const stages=['CS1','CS2','CS3','CS4','CS5','CS6'];
+  const safeStage = Math.max(0, Math.min(5, cvmStage));
+
+  let SNAv = "N/A", SNBv = "N/A", ANBv = "N/A";
+  let anbPattern = "";
+
+  if (apiReport && apiReport["SNA角"] && apiReport["SNB角"]) {
+      SNAv = apiReport["SNA角"].value;
+      SNBv = apiReport["SNB角"].value;
+      ANBv = apiReport["ANB角"].value;
+      anbPattern = ANBv > 4 ? 'Class II skeletal pattern' : ANBv < 1 ? 'Class III pattern' : 'Class I relationship';
+  } else {
+      SNAv = calcAngle(10,4,0);
+      SNBv = calcAngle(10,4,2);
+      ANBv = (SNAv&&SNBv)?+(SNAv-SNBv).toFixed(0):null;
+      if (ANBv !== null) {
+          anbPattern = ANBv > 4 ? 'Class II skeletal pattern' : ANBv < 1 ? 'Class III pattern' : 'Class I relationship';
+      }
+  }
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:13px;color:var(--color-text-primary);font-weight:600">Case overview</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">
+      <strong>${t1}</strong> landmarks auto-output (Tier 1). <strong>${t2}</strong> require clinical verification (Tier 2).
+      <strong>${t3}</strong> landmarks (Go, Po) are below confidence threshold — manual input required.<br><br>
+      ${ANBv !== null && ANBv !== "N/A" ? `ANB angle <strong>${ANBv}°</strong> suggests ${anbPattern}.` : ''}
+      CVM stage: <strong>${stages[safeStage]}</strong>.
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="ask-btn" onclick="sendPrompt('Generate a full orthodontic diagnostic report for this case. SNA=${SNAv}°, SNB=${SNBv}°, ANB=${ANBv}°, CVM stage ${stages[safeStage]}. Include diagnosis, treatment objectives, and a phased treatment plan.')">
+        <i class="ti ti-file-text" style="vertical-align:text-bottom;"></i> Generate full report
+      </button>
+      <button class="ask-btn" onclick="sendPrompt('What are the key risks and contraindications for this patient given the low-confidence landmarks (Go SDR 48.7%, Po SDR 68.7%)?')">
+        <i class="ti ti-alert-triangle" style="vertical-align:text-bottom;"></i> Risk analysis
+      </button>
+    </div>
+  </div>`;
+}
+
+// 启动执行
+buildLandmarkList();
+</script>
+
+</body>
+</html>
